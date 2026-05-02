@@ -11,28 +11,38 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
-          pip install akshare -q
+          pip install akshare pandas tqdm -q
+          python -c "import akshare; print('akshare version:', akshare.__version__)"
+
+      - name: Show current date and data file status
+        run: |
+          echo "Today is: $(date +%Y-%m-%d)"
+          ls -la public/data/
+          head -c 200 public/data/sector_fund_data.json
 
       - name: Update sector data
         run: |
           python scripts/update_data.py
+        continue-on-error: false
 
       - name: Check for changes
         id: check_changes
         run: |
           if git diff --quiet public/data/sector_fund_data.json; then
             echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No data changes detected."
           else
             echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Data changed! Will commit."
           fi
 
       - name: Commit and push changes
